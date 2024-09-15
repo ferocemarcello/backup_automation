@@ -54,8 +54,8 @@ def main():
   # Create a zero-touch enrollment API service endpoint.
   service = get_service()
 
-  file_metadata = {'name': 'requirements.txt', 'parents': ['drive_folder']} # Replace with your file name
-  media = MediaFileUpload('./requirements.txt', mimetype='text/plain') # Replace with your file path and mimetype
+  file_metadata = {'name': 'backupautomation_service_account_key.json', 'parents': ['drive_folder']} # Replace with your file name
+  media = MediaFileUpload('./backupautomation_service_account_key.json') # Replace with your file path and mimetype
   file = service.files().create(body=file_metadata,
                                     media_body=media,
                                     fields='id').execute()
