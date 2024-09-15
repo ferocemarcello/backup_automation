@@ -1,13 +1,73 @@
 import json
 import time
 import argparse
-from notion_client import Client
+import requests
 
-def fetch_blocks(block_id:str, depth:int = 0, notion_client:str=None):
+# Define the base URL for the Notion API
+NOTION_API_URL = "https://api.notion.com/v1"
+NOTION_VERSION = "2022-06-28"  # Notion API version
+
+def fetch_page(page_id, notion_token):
     """
-    Recursively fetch the content of blocks from Notion API.
+    Fetch a single page and all of its blocks (recursively) using raw API requests.
     """
-    block_data = notion_client.blocks.children.list(block_id=block_id)
+    endpoint = f"pages/{page_id}"
+    page_data = make_notion_request(endpoint, notion_token)
+    
+    # Extract the title of the page
+    page_title = ""
+    if "properties" in page_data and "title" in page_data['properties']:
+        page_title = page_data['properties']['title']['title'][0].get('plain_text', '')
+
+    page_blocks = fetch_blocks(page_id, notion_token)
+
+    return {
+        'id': page_id,
+        'title': page_title,
+        'blocks': page_blocks
+    }
+
+def fetch_database(database_id, notion_token):
+    """
+    Fetch all items from a Notion database using raw API requests.
+    """
+    endpoint = f"databases/{database_id}/query"
+    database_data = make_notion_request(endpoint, notion_token, method="POST")
+    database_results = database_data.get('results', [])
+    database_items = []
+
+    for item in database_results:
+        page_id = item['id']
+        database_items.append(fetch_page(page_id, notion_token))
+
+    return database_items
+
+def make_notion_request(endpoint, notion_token, method="GET", payload=None, params=None):
+    """
+    Makes a raw HTTP request to the Notion API.
+    """
+    headers = {
+        "Authorization": f"Bearer {notion_token}",
+        "Content-Type": "application/json",
+        "Notion-Version": NOTION_VERSION
+    }
+    
+    url = f"{NOTION_API_URL}/{endpoint}"
+
+    if method == "GET":
+        response = requests.get(url, headers=headers, params=params)
+    elif method == "POST":
+        response = requests.post(url, headers=headers, json=payload)
+    
+    response.raise_for_status()
+    return response.json()
+
+def fetch_blocks(block_id:str, notion_token:str, depth=0):
+    """
+    Recursively fetch the content of blocks using raw API requests.
+    """
+    endpoint = f"blocks/{block_id}/children"
+    block_data = make_notion_request(endpoint, notion_token)
     block_results = block_data.get('results', [])
     blocks = []
 
@@ -22,7 +82,7 @@ def fetch_blocks(block_id:str, depth:int = 0, notion_client:str=None):
 
         # If the block has children, recursively fetch them
         if block.get('has_children'):
-            block_item['children'] = fetch_blocks(block['id'], depth + 1)
+            block_item['children'] = fetch_blocks(block['id'], notion_token, depth + 1)
 
         blocks.append(block_item)
 
@@ -31,69 +91,43 @@ def fetch_blocks(block_id:str, depth:int = 0, notion_client:str=None):
     
     return blocks
 
-def fetch_page(page_id:str, notion_client:str=None):
-    """
-    Fetch a single page and all of its blocks (recursively).
-    """
-    page_data = notion_client.pages.retrieve(page_id=page_id)
-    page_title = page_data.get('properties', {}).get('title', {}).get('title', [{}])[0].get('plain_text', '')
-    page_blocks = fetch_blocks(page_id)
-
-    return {
-        'id': page_id,
-        'title': page_title,
-        'blocks': page_blocks
-    }
-
-def fetch_database(database_id:str, notion_client:str=None):
-    """
-    Fetch all items from a Notion database, along with their contents.
-    """
-    database_data = notion_client.databases.query(database_id=database_id)
-    database_results = database_data.get('results', [])
-    database_items = []
-
-    for item in database_results:
-        page_id = item['id']
-        database_items.append(fetch_page(page_id))
-
-    return database_items
-
-def fetch_all_pages_and_databases(notion_client:str=None):
+def fetch_all_pages_and_databases(notion_token:str):
     """
     Fetch all pages and databases in the workspace using the search endpoint.
     """
-
+    all_pages = []
+    all_databases = []
+    search_endpoint = "search"
+    
     # Search for all databases
-    search_response = notion_client.search(query="", filter={"property": "object", "value": "database"})
+    payload = {"query": "", "filter": {"property": "object", "value": "database"}}
+    search_response = make_notion_request(search_endpoint, notion_token, method="POST", payload=payload)
     databases = search_response.get("results", [])
 
     # Search for all pages
-    search_response = notion_client.search(query="", filter={"property": "object", "value": "page"})
+    payload = {"query": "", "filter": {"property": "object", "value": "page"}}
+    search_response = make_notion_request(search_endpoint, notion_token, method="POST", payload=payload)
     pages = search_response.get("results", [])
 
     return [page["id"] for page in pages], [db["id"] for db in databases]
 
-def export_workspace_to_json(output_file:str = 'notion_workspace.json', notion_token:str=None):
+def export_workspace_to_json(output_file:str, notion_token:str):
     """
     Export the entire workspace (all pages and databases) to JSON.
     """
     workspace_data = {}
 
-    # Initialize the Notion client
-    notion_client = Client(auth=notion_token)
-
     # Fetch all pages and databases
-    page_ids, database_ids = fetch_all_pages_and_databases(notion_client=notion_client)
+    page_ids, database_ids = fetch_all_pages_and_databases(notion_token=notion_token)
 
     # Fetch pages
     for page_id in page_ids:
-        page_data = fetch_page(page_id, notion_client=notion_client)
+        page_data = fetch_page(page_id, notion_token)
         workspace_data[page_data['title']] = page_data
 
     # Fetch databases
     for database_id in database_ids:
-        database_data = fetch_database(database_id, notion_client=notion_client)
+        database_data = fetch_database(database_id, notion_token)
         workspace_data[f"Database_{database_id}"] = database_data
 
     # Write to JSON file
@@ -102,15 +136,18 @@ def export_workspace_to_json(output_file:str = 'notion_workspace.json', notion_t
     print(f"Exported workspace data to {output_file}")
 
 if __name__ == "__main__":
-    #python export_notion_workspace.py --output my_workspace.json --token your_notion_token
+    #python notion_exporter.py --output my_workspace.json --token your_notion_token
+    #python notion_exporter.py --token your_notion_token
 
     # Set up argument parsing
     parser = argparse.ArgumentParser(description="Export Notion workspace to JSON")
-    parser.add_argument('--output', type=str, required=True, help="Output JSON file name")
+    parser.add_argument('--output', type=str, default='notion_workspace.json', help="Output JSON file name (default: notion_workspace.json)")
     parser.add_argument('--token', type=str, required=True, help="Notion API token")
 
     # Parse the arguments
     args = parser.parse_args()
 
+    print("output file: "+ str(args.output))
+
     # Call the function to export the workspace with the passed token and output file
-    export_workspace_to_json(args.output, notion_token=args.token)
+    export_workspace_to_json(output_file=args.output, notion_token=args.token)
