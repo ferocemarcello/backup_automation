@@ -131,7 +131,7 @@ def export_workspace_to_json(output_file:str, notion_token:str):
         workspace_data[f"Database_{database_id}"] = database_data
 
     # Write to JSON file
-    with open(output_file, 'w', encoding='utf-8') as f:
+    with open("./backup/"+output_file, 'w', encoding='utf-8') as f:
         json.dump(workspace_data, f, ensure_ascii=False, indent=4)
     print(f"Exported workspace data to {output_file}")
 
