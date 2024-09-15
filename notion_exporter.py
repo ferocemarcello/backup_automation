@@ -2,10 +2,30 @@ import json
 import time
 import argparse
 import requests
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+import os
 
 # Define the base URL for the Notion API
 NOTION_API_URL = "https://api.notion.com/v1"
 NOTION_VERSION = "2022-06-28"  # Notion API version
+
+# Google Drive settings
+SERVICE_ACCOUNT_FILE = './backupautomation_service_account_key.json'
+SCOPES = ['https://www.googleapis.com/auth/drive']
+
+def authenticate_google_drive():
+    """Authenticate with Google Drive using a service account."""
+    creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    return build('drive', 'v3', credentials=creds)
+
+def upload_to_drive(file_path, drive_service):
+    """Upload a file to Google Drive."""
+    file_metadata = {'name': os.path.basename(file_path)}
+    media = MediaFileUpload(file_path, mimetype='application/json')
+    file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+    print(f'File uploaded to Google Drive with ID: {file.get("id")}')
 
 def fetch_page(page_id, notion_token):
     """
@@ -111,11 +131,13 @@ def fetch_all_pages_and_databases(notion_token:str):
 
     return [page["id"] for page in pages], [db["id"] for db in databases]
 
-def export_workspace_to_json(output_file:str, notion_token:str):
+def export_workspace_to_json(output_file:str, notion_token:str, drive_service):
     """
     Export the entire workspace (all pages and databases) to JSON.
     """
     workspace_data = {}
+
+    output_file = "./backup/"+output_file
 
     # Fetch all pages and databases
     page_ids, database_ids = fetch_all_pages_and_databases(notion_token=notion_token)
@@ -131,9 +153,12 @@ def export_workspace_to_json(output_file:str, notion_token:str):
         workspace_data[f"Database_{database_id}"] = database_data
 
     # Write to JSON file
-    with open("./backup/"+output_file, 'w', encoding='utf-8') as f:
+    with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(workspace_data, f, ensure_ascii=False, indent=4)
     print(f"Exported workspace data to {output_file}")
+
+    # Upload to Google Drive
+    upload_to_drive(output_file, drive_service)
 
 if __name__ == "__main__":
     #python notion_exporter.py --output my_workspace.json --token your_notion_token
@@ -147,7 +172,10 @@ if __name__ == "__main__":
     # Parse the arguments
     args = parser.parse_args()
 
+    # Authenticate Google Drive
+    drive_service = authenticate_google_drive()
+
     print("output file: "+ str(args.output))
 
     # Call the function to export the workspace with the passed token and output file
-    export_workspace_to_json(output_file=args.output, notion_token=args.token)
+    export_workspace_to_json(output_file=args.output, notion_token=args.token, drive_service=drive_service)
