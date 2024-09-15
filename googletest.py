@@ -12,12 +12,8 @@ from oauth2client.service_account import ServiceAccountCredentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
-# A single auth scope is used for the zero-touch enrollment customer API.
-SCOPES = ['https://www.googleapis.com/auth/drive']
-SERVICE_ACCOUNT_KEY_FILE = 'backupautomation_service_account_key.json'
 
-
-def get_credential():
+def get_credential(service_account_file:str, scopes:list):
   """Creates a Credential object with the correct OAuth2 authorization.
 
   Uses the service account key stored in SERVICE_ACCOUNT_KEY_FILE.
@@ -26,7 +22,7 @@ def get_credential():
     Credentials, the user's credential.
   """
   credential = ServiceAccountCredentials.from_json_keyfile_name(
-    SERVICE_ACCOUNT_KEY_FILE, SCOPES)
+    service_account_file, scopes)
 
   if not credential or credential.invalid:
     print('Unable to authenticate using service account key.')
@@ -34,7 +30,7 @@ def get_credential():
   return credential
 
 
-def get_service():
+def get_service(service_account_file:str, scopes:list):
   """Creates a service endpoint for the zero-touch enrollment API.
 
   Builds and returns an authorized API client service for v1 of the API. Use
@@ -43,16 +39,19 @@ def get_service():
   Returns:
     A service Resource object with methods for interacting with the service.
   """
-  http_auth = get_credential().authorize(httplib2.Http())
+
+  http_auth = get_credential(scopes=scopes, service_account_file=service_account_file).authorize(httplib2.Http())
   return build('drive', 'v3', http=http_auth)
 
 
 
 def main():
-  """Runs the zero-touch enrollment quickstart app.
-  """
+  # A single auth scope is used for the zero-touch enrollment customer API.
+  SCOPES = ['https://www.googleapis.com/auth/drive']
+  SERVICE_ACCOUNT_KEY_FILE = 'backupautomation_service_account_key.json'
+
   # Create a zero-touch enrollment API service endpoint.
-  service = get_service()
+  service = get_service(scopes=SCOPES, service_account_file=SERVICE_ACCOUNT_KEY_FILE)
 
   file_metadata = {'name': 'backupautomation_service_account_key.json', 'parents': ['drive_folder']} # Replace with your file name
   media = MediaFileUpload('./backupautomation_service_account_key.json') # Replace with your file path and mimetype
