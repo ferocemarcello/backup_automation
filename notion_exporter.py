@@ -11,13 +11,9 @@ import os
 NOTION_API_URL = "https://api.notion.com/v1"
 NOTION_VERSION = "2022-06-28"  # Notion API version
 
-# Google Drive settings
-SERVICE_ACCOUNT_FILE = './backupautomation_service_account_key.json'
-SCOPES = ['https://www.googleapis.com/auth/drive']
-
-def authenticate_google_drive():
+def authenticate_google(service_account_file:str = None, scopes:list = []):
     """Authenticate with Google Drive using a service account."""
-    creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    creds = Credentials.from_service_account_file(service_account_file, scopes=scopes)
     return build('drive', 'v3', credentials=creds)
 
 def upload_to_drive(file_path, drive_service):
@@ -157,23 +153,23 @@ def export_workspace_to_json(output_file:str, notion_token:str, drive_service):
         json.dump(workspace_data, f, ensure_ascii=False, indent=4)
     print(f"Exported workspace data to {output_file}")
 
-    # Upload to Google Drive
-    upload_to_drive(output_file, drive_service)
-
 if __name__ == "__main__":
-    #python notion_exporter.py --output my_workspace.json --token your_notion_token
-    #python notion_exporter.py --token your_notion_token
+    #python notion_exporter.py --output notion_workspace.json --token your_notion_token --service_account_file backupautomation_service_account_key.json
+    #python notion_exporter.py --token your_notion_token --service_account_file backupautomation_service_account_key.json
 
     # Set up argument parsing
     parser = argparse.ArgumentParser(description="Export Notion workspace to JSON")
     parser.add_argument('--output', type=str, default='notion_workspace.json', help="Output JSON file name (default: notion_workspace.json)")
     parser.add_argument('--token', type=str, required=True, help="Notion API token")
+    parser.add_argument('--service_account_file', type=str, required=True, help="Google Service Account File")
 
     # Parse the arguments
     args = parser.parse_args()
-
+    for arg in args._get_args():
+        print(f"arg: {str(arg)}")
     # Authenticate Google Drive
-    drive_service = authenticate_google_drive()
+    drive_service = authenticate_google(service_account_file= args.service_account_file,
+                                        scopes = ['https://www.googleapis.com/auth/drive'])
 
     print("output file: "+ str(args.output))
 
