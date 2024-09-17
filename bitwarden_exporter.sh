@@ -1,9 +1,15 @@
 #!/bin/bash
 
-# Replace these with your Bitwarden API Key details
-BW_CLIENTID="clientid"
-BW_CLIENTSECRET="secret"
-BW_PASSWORD="password"
+# Check if the correct number of arguments are passed
+if [ "$#" -ne 3 ]; then
+    echo "Usage: $0 <client_id> <client_secret> <master_password>"
+    exit 1
+fi
+
+# Assign command-line arguments to variables
+BW_CLIENTID=$1
+BW_CLIENTSECRET=$2
+BW_PASSWORD=$3
 
 # Export the BW_PASSWORD variable so it can be used by bw unlock
 export BW_PASSWORD
