@@ -14,15 +14,19 @@ def get_credential(service_account_file:str, scopes:list):
 def get_service(service_account_file:str, scopes:list):
   return build('drive', 'v3', http=get_credential(scopes=scopes, service_account_file=service_account_file).authorize(httplib2.Http()))
 
-def find_existing_file(service, folder_id: str, file_name: str):
+def find_existing_files(service, folder_id: str, file_name: str) -> list:
+    # List all files in the folder with the given name
     results = service.files().list(
         q=f"'{folder_id}' in parents and name='{file_name}'",
         spaces='drive',
-        fields="files(id, name)"
+        fields="files(id, name, createdTime)",
+        orderBy="createdTime desc"  # Order by createdTime in descending order (newest first)
     ).execute()
 
     items = results.get('files', [])
-    return items[0] if items else None
+    
+    # Return all items except the newest one (first in the sorted list)
+    return items[1:] if len(items) > 1 else []
 
 def delete_file(service, file_id: str):
     print(f"Deleting old file (ID: {file_id})")
@@ -33,9 +37,8 @@ def upload_file_to_drive(service, file_path: str, file_name: str, folder_id: str
     print('File ID: %s' % file.get('id'))
 
     # Find and delete old file
-    existing_file = find_existing_file(service=service, folder_id=folder_id, file_name=file_name)
-    if existing_file and existing_file['id'] != file.get('id'):
-        delete_file(service, existing_file['id'])
+    existing_files = find_existing_files(service=service, folder_id=folder_id, file_name=file_name)
+    list(map(lambda x: delete_file(service, x["id"]), existing_files))
 
 def main():
   #python upload_to_drive.py --folder_id <your_drive_folder_id> --file_path <path_to_your_file> --file_name <your_file_name> --service_account <path_to_service_account_key_file>
