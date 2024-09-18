@@ -22,7 +22,7 @@ sudo docker run -v ./:/app backup_image bash ./bitwarden_exporter.sh $BITWARDEN_
 
 # Run Notion Exporter
 echo -e "Running Notion exporter..."
-sudo docker run -v ./:/app backup_image python ./notion_exporter.py --output $BACKUP_FILE_NAME_NOTION --token $NOTION_TOKEN --service_account_file $GOOGLE_SERVICE_ACCOUNT_FILE
+sudo docker run -v ./:/app backup_image python ./notion_exporter.py --output $BACKUP_FILE_NAME_NOTION --token $NOTION_TOKEN
 
 # Upload Bitwarden vault to Google Drive
 echo -e "Uploading Bitwarden vault to Google Drive..."
@@ -32,4 +32,4 @@ sudo docker run -v ./:/app backup_image python ./upload_to_drive.py --folder_id 
 echo -e "Uploading Notion workspace to Google Drive..."
 sudo docker run -v ./:/app backup_image python ./upload_to_drive.py --folder_id $DRIVE_FOLDER_ID --file_path $BACKUP_FILE_PATH_NOTION --file_name $BACKUP_FILE_NAME_NOTION --service_account $GOOGLE_SERVICE_ACCOUNT_FILE
 
-#./backup.sh BITWARDEN_CLIENT_ID BITWARDEN_CLIENT_SECRET BITWARDEN_MASTER_PASSWORD NOTION_TOKEN GOOGLE_SERVICE_ACCOUNT_FILE DRIVE_FOLDER_ID BACKUP_FILE_PATH_BITWARDEN BACKUP_FILE_NAME_BITWARDEN BACKUP_FILE_PATH_NOTION BACKUP_FILE_NAME_NOTION
+#./backup.sh BITWARDEN_CLIENT_ID BITWARDEN_CLIENT_SECRET BITWARDEN_MASTER_PASSWORD BACKUP_FILE_NAME_NOTION NOTION_TOKEN DRIVE_FOLDER_ID BACKUP_FILE_PATH_BITWARDEN BACKUP_FILE_NAME_BITWARDEN GOOGLE_SERVICE_ACCOUNT_FILE DRIVE_FOLDER_ID BACKUP_FILE_PATH_NOTION BACKUP_FILE_NAME_NOTION GOOGLE_SERVICE_ACCOUNT_FILE
