@@ -1,8 +1,9 @@
 #!/bin/bash
+#sudo docker run -v ./:/app backup_image bash ./bitwarden_exporter.sh "your_client_id" "your_client_secret" "your_master_password" "vault_file_name"
 
 # Check if the correct number of arguments are passed
-if [ "$#" -ne 3 ]; then
-    echo "Usage: $0 <client_id> <client_secret> <master_password>"
+if [ "$#" -ne 4 ]; then
+    echo "Usage: $0 <client_id> <client_secret> <master_password> <vault_file_name>"
     exit 1
 fi
 
@@ -10,6 +11,7 @@ fi
 BW_CLIENTID=$1
 BW_CLIENTSECRET=$2
 BW_PASSWORD=$3
+VAULT_FILE_NAME=$4
 
 # Export the BW_PASSWORD variable so it can be used by bw unlock
 export BW_PASSWORD
@@ -35,10 +37,10 @@ if [ -z "$VAULT_DATA" ]; then
     exit 1
 fi
 
-# Format the JSON data using jq and save it to a JSON file
-echo "$VAULT_DATA" | jq '.' > /app/backup/bitwarden_vault.json
+# Format the JSON data using jq and save it to a JSON file with the provided file name
+echo "$VAULT_DATA" | jq '.' > /app/backup/"$VAULT_FILE_NAME"
 
-echo "Vault data exported successfully to bitwarden_vault.json"
+echo "Vault data exported successfully to $VAULT_FILE_NAME"
 
 # Optionally log out of Bitwarden
 bw logout
