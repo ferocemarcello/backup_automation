@@ -1,6 +1,8 @@
 #sudo docker build -t backup_image .
-#sudo docker run -v ./:/app backup_image python ./upload_to_drive.py --folder_id 1PWfe34jKtnbjOfk_BdDVbBJu55FNqPPr --file_path ./backup/notion_workspace.json --file_name notion_workspace --service_account ./backupautomation_service_account_key.json
+#sudo docker run -v ./:/app backup_image python ./notion_exporter.py --output notion_workspace.json --token notion_token
 #sudo docker run -v ./:/app backup_image bash ./bitwarden_exporter.sh "your_client_id" "your_client_secret" "your_master_password"
+#sudo docker run -v ./:/app backup_image python ./upload_to_drive.py --folder_id drive_folder --file_path ./backup/notion_workspace.json --file_name notion_workspace.json --service_account ./backupautomation_service_account_key.json
+#sudo docker run -v ./:/app backup_image python ./upload_to_drive.py --folder_id drive_folder --file_path ./backup/bitwarden_vault.json --file_name bitwarden_vault.json --service_account ./backupautomation_service_account_key.json
 
 # Use an official Alpine image as a base
 FROM alpine:3.18
