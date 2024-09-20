@@ -16,6 +16,12 @@ BACKUP_FILE_PATH_NOTION=$10
 echo -e "Building Docker image..."
 sudo docker build -t backup_image .
 
+# Ensure the backup folder exists
+if [ ! -d "./backup" ]; then
+  echo "Creating backup directory..."
+  mkdir ./backup
+fi
+
 # Run Bitwarden Exporter
 echo -e "Running Bitwarden exporter..."
 sudo docker run -v ./:/app backup_image bash ./bitwarden_exporter.sh $BITWARDEN_CLIENT_ID $BITWARDEN_CLIENT_SECRET $BITWARDEN_MASTER_PASSWORD $FILE_NAME_BITWARDEN
