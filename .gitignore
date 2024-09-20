@@ -2,6 +2,10 @@
 **./backup/**
 **backup/**
 
+#Google Service Account
+**./google_service_account/**
+**google_service_account/**
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
