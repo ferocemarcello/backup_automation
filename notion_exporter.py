@@ -111,13 +111,13 @@ def fetch_all_pages_and_databases(notion_token:str):
 
     return [page["id"] for page in pages], [db["id"] for db in databases]
 
-def export_workspace_to_json(output_file:str, notion_token:str):
+def export_workspace_to_json(output_file:str, backup_folder:str, notion_token:str):
     """
     Export the entire workspace (all pages and databases) to JSON.
     """
     workspace_data = {}
 
-    output_file = "./backup/"+output_file
+    output_file = backup_folder+output_file
 
     # Fetch all pages and databases
     page_ids, database_ids = fetch_all_pages_and_databases(notion_token=notion_token)
@@ -144,6 +144,7 @@ if __name__ == "__main__":
     # Set up argument parsing
     parser = argparse.ArgumentParser(description="Export Notion workspace to JSON")
     parser.add_argument('--output', type=str, default='notion_workspace.json', help="Output JSON file name (default: notion_workspace.json)")
+    parser.add_argument('--backup_folder', type=str, default='./backup/', help="Backup folder including ending / (default: ./backup/)")
     parser.add_argument('--token', type=str, required=True, help="Notion API token")
 
     # Parse the arguments
@@ -152,4 +153,4 @@ if __name__ == "__main__":
         print(f"arg: {str(arg)}")
 
     # Call the function to export the workspace with the passed token and output file
-    export_workspace_to_json(output_file=args.output, notion_token=args.token)
+    export_workspace_to_json(output_file=args.output, backup_folder=args.backup_folder, notion_token=args.token)
