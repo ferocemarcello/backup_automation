@@ -12,6 +12,7 @@ BW_CLIENTID=$1
 BW_CLIENTSECRET=$2
 BW_PASSWORD=$3
 VAULT_FILE_NAME=$4
+BACKUP_FOLDER=$5 #including "/" at the end
 
 # Export the BW_PASSWORD variable so it can be used by bw unlock
 export BW_PASSWORD
@@ -38,7 +39,7 @@ if [ -z "$VAULT_DATA" ]; then
 fi
 
 # Format the JSON data using jq and save it to a JSON file with the provided file name
-echo "$VAULT_DATA" | jq '.' > /app/backup/"$VAULT_FILE_NAME"
+echo "$VAULT_DATA" | jq '.' > "$BACKUP_FOLDER"$VAULT_FILE_NAME"
 
 echo "Vault data exported successfully to $VAULT_FILE_NAME"
 
