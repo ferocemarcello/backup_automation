@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import time
 import httplib2
 import argparse
 import os
@@ -37,12 +38,20 @@ def upload_file_to_drive(service, file_path: str, drive_folder_id: str):
     file = service.files().create(body={'name': file_name, 'parents': [drive_folder_id]}, media_body=MediaFileUpload(file_path), fields='id').execute()
     print('File ID: %s' % file.get('id'))
 
+    time.sleep(5)
     # Find and delete old file
     existing_files = find_existing_files(service=service, drive_folder_id=drive_folder_id, file_name=file_name)
     list(map(lambda x: delete_file(service, x["id"]), existing_files))
 
+def upload_folder_to_drive(service, folder_path: str, drive_folder_id: str):
+    for file_name in os.listdir(folder_path):
+        file_path = os.path.join(folder_path, file_name)
+        if os.path.isfile(file_path):  # Check if it is a file
+            print(f"Uploading file: {file_path}")
+            upload_file_to_drive(service, file_path, drive_folder_id)
+
 def main():
-  #python upload_to_drive.py --folder_id <your_drive_folder_id> --file_path <path_to_your_file> --service_account <path_to_service_account_key_file>
+  #python upload_to_drive.py --drive_folder_id <your_drive_folder_id> --file_path <path_to_your_file> --folder_path <path_to_your_folder>--service_account <path_to_service_account_key_file>
   parser = argparse.ArgumentParser(description="Upload a file to Google Drive using a service account")
   parser.add_argument('--drive_folder_id', type=str, required=True, help="Google Drive folder ID")
   parser.add_argument('--file_path', type=str, help="Path to the file to upload")
@@ -64,8 +73,12 @@ def main():
   # Get authenticated Google Drive service
   service = get_service(scopes=SCOPES, service_account_file=SERVICE_ACCOUNT_KEY_FILE)
 
-  # Upload the file to Google Drive
-  upload_file_to_drive(service=service, file_path=args.file_path, drive_folder_id=args.drive_folder_id)
+  # Upload file or folder to Google Drive
+  if args.file_path:
+        upload_file_to_drive(service=service, file_path=args.file_path, drive_folder_id=args.drive_folder_id)
+  elif args.folder_path:
+      upload_folder_to_drive(service=service, folder_path=args.folder_path, drive_folder_id=args.drive_folder_id)
+
 
 
 if __name__ == '__main__':
