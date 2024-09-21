@@ -96,8 +96,6 @@ def fetch_all_pages_and_databases(notion_token:str):
     """
     Fetch all pages and databases in the workspace using the search endpoint.
     """
-    all_pages = []
-    all_databases = []
     search_endpoint = "search"
     
     # Search for all databases

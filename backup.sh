@@ -8,9 +8,7 @@ BITWARDEN_VAULT_PATH=$4
 NOTION_WORKSPACE_PATH=$5
 NOTION_TOKEN=$6
 DRIVE_FOLDER_ID=$7
-BACKUP_FILE_PATH_BITWARDEN=$8
-GOOGLE_SERVICE_ACCOUNT_FILE=$9
-BACKUP_FILE_PATH_NOTION=$10
+GOOGLE_SERVICE_ACCOUNT_FILE=$8
 
 # Docker build
 echo -e "Building Docker image..."
@@ -22,14 +20,25 @@ sudo docker run -v ./:/app backup_image bash ./bitwarden_exporter.sh $BITWARDEN_
 
 # Run Notion Exporter
 echo -e "Running Notion exporter..."
-sudo docker run -v ./:/app backup_image python ./notion_exporter.py --output $NOTION_WORKSPACE_PATH --token $NOTION_TOKEN
+sudo docker run -v ./:/app backup_image python ./notion_exporter.py --notion_workspace_path $NOTION_WORKSPACE_PATH --token $NOTION_TOKEN
 
-# Upload Bitwarden vault to Google Drive
-echo -e "Uploading Bitwarden vault to Google Drive..."
-sudo docker run -v ./:/app backup_image python ./upload_to_drive.py --folder_id $DRIVE_FOLDER_ID --file_path $BACKUP_FILE_PATH_BITWARDEN --file_name $FILE_NAME_BITWARDEN --service_account $GOOGLE_SERVICE_ACCOUNT_FILE
+# Check if BITWARDEN_VAULT_PATH and NOTION_WORKSPACE_PATH are in the same directory
+DIR_BITWARDEN=$(dirname "$BITWARDEN_VAULT_PATH")
+DIR_NOTION=$(dirname "$NOTION_WORKSPACE_PATH")
 
-# Upload Notion workspace to Google Drive
-echo -e "Uploading Notion workspace to Google Drive..."
-sudo docker run -v ./:/app backup_image python ./upload_to_drive.py --folder_id $DRIVE_FOLDER_ID --file_path $BACKUP_FILE_PATH_NOTION --file_name $FILE_NAME_NOTION --service_account $GOOGLE_SERVICE_ACCOUNT_FILE
+if [ "$DIR_BITWARDEN" == "$DIR_NOTION" ]; then
+    echo -e "Both Notion backup and workspace are in the same directory: $DIR_NOTION"
+    # Uploading the whole folder to google drive
+    echo -e "Uploading the whole folder $DIR_NOTION to google drive"
+    sudo docker run -v ./:/app backup_image python ./upload_to_drive.py --drive_folder_id $DRIVE_FOLDER_ID --folder_path $DIR_NOTION --service_account $GOOGLE_SERVICE_ACCOUNT_FILE
 
-#./backup.sh BITWARDEN_CLIENT_ID BITWARDEN_CLIENT_SECRET BITWARDEN_MASTER_PASSWORD BITWARDEN_VAULT_PATH NOTION_WORKSPACE_PATH NOTION_TOKEN DRIVE_FOLDER_ID BACKUP_FILE_PATH_BITWARDEN GOOGLE_SERVICE_ACCOUNT_FILE BACKUP_FILE_PATH_NOTION
+else
+    echo -e "Notion backup and workspace are in different directories."
+    # Run commands for separate directories
+    echo -e "Uploading Bitwarden vault to Google Drive..."
+    sudo docker run -v ./:/app backup_image python ./upload_to_drive.py --drive_folder_id $DRIVE_FOLDER_ID --file_path $BITWARDEN_VAULT_PATH --service_account $GOOGLE_SERVICE_ACCOUNT_FILE
+    echo -e "Uploading Notion workspace to Google Drive..."
+    sudo docker run -v ./:/app backup_image python ./upload_to_drive.py --drive_folder_id $DRIVE_FOLDER_ID --file_path $NOTION_WORKSPACE_PATH --service_account $GOOGLE_SERVICE_ACCOUNT_FILE
+fi
+
+#./backup.sh BITWARDEN_CLIENT_ID BITWARDEN_CLIENT_SECRET BITWARDEN_MASTER_PASSWORD BITWARDEN_VAULT_PATH NOTION_WORKSPACE_PATH NOTION_TOKEN DRIVE_FOLDER_ID GOOGLE_SERVICE_ACCOUNT_FILE
